@@ -96,6 +96,7 @@ if __name__ == "__main__":
         default=1,
         help="How many completion choices to generate.",
     )
+    parser.add_argument("--model_name", type=str, default="model")
     parser.add_argument(
         "--force-temperature", type=float, help="Forcibly set a sampling temperature."
     )
@@ -128,7 +129,7 @@ if __name__ == "__main__":
     if args.answer_file:
         answer_file = args.answer_file
     else:
-        answer_file = f"data/{args.bench_name}/model_answer/{args.model}.jsonl"
+        answer_file = f"data/{args.bench_name}/model_answer/{args.model_name}.jsonl"
     print(f"Output to {answer_file}")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.parallel) as executor:
