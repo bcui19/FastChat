@@ -19,6 +19,7 @@ from fastchat.llm_judge.common import (
     chat_completion_openai,
     chat_completion_anthropic,
     chat_completion_palm,
+    db_inference_deployment,
 )
 from fastchat.llm_judge.gen_model_answer import reorg_answer_file
 from fastchat.model.model_adapter import get_conversation_template, ANTHROPIC_MODEL_LIST
@@ -55,6 +56,8 @@ def get_answer(
                 chat_state, output = chat_completion_palm(
                     chat_state, model, conv, temperature, max_tokens
                 )
+            elif "https://" in model:
+                output = db_inference_deployment(model, conv, temperature, max_tokens)
             else:
                 output = chat_completion_openai(model, conv, temperature, max_tokens)
 
