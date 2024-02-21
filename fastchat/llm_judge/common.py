@@ -468,7 +468,7 @@ def chat_completion_openai_azure(model, conv, temperature, max_tokens, api_dict=
 
 
 def db_inference_deployment(model, conv, temperature, max_tokens, api_dict=None):
-    client = openai.OpenAI(base_url=model, api_key = os.environ["MOSAIC_API_KEY"])
+    client = openai.OpenAI(base_url=model, api_key = os.environ["MOSAICML_API_KEY"])
     messages = conv.to_openai_api_messages()
     responses = client.with_options(max_retries=5).chat.completions.create(
         messages = messages,
