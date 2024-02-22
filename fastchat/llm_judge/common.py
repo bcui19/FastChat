@@ -472,7 +472,9 @@ def db_inference_deployment(model, conv, temperature, max_tokens, api_dict=None)
     messages = conv.to_openai_api_messages()
     responses = client.with_options(max_retries=5).chat.completions.create(
         messages = messages,
-        model = 'mixtral'
+        temperature = temperature,
+        model = 'mixtral',
+        max_tokens=max_tokens,
     )
     output = responses.choices[0].message.content
     return output
