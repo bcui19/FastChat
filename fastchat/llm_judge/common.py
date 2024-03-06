@@ -466,17 +466,52 @@ def chat_completion_openai_azure(model, conv, temperature, max_tokens, api_dict=
 
     return output
 
+def get_response_batch(prompts, url, max_tokens, temperature, retries_left=3):
+    import requests
+    headers = {"Authorization": os.environ["MOSAICML_API_KEY"], "Content-Type": "application/json"}
+
+    data = {
+        "prompt": prompts, 
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "use_raw_prompt": True,
+        "stop": ["<|im_end|>"]
+    }
+    response = requests.post(url, headers=headers, json=data, timeout=360)
+
+    if response.status_code == 400 and "Please reduce the length of your prompt." in response.text:
+            return None
+    elif  response.status_code != 200:
+        print(response.status_code)
+        print(response.text)
+        if retries_left > 0:
+            print("Retrying...")
+            # sleep for longer each retry
+            time.sleep(5 * (6 - retries_left))
+            return get_response_batch(prompts, stop_tokens, temperature=temperature, retries_left=retries_left-1)
+        else:
+            raise Exception("Too many retries")
+    else:
+        response = response.json()
+        
+        # need to trim the leading space on all choices
+        responses = []
+        finish_reasons = []
+        for i, choice in enumerate(response["choices"]):
+
+            responses.append(choice["text"].strip())
+            finish_reasons.append(choice["finish_reason"])
+        
+        return responses# , finish_reasons, response['usage']['prompt_tokens'], response['usage']['completion_tokens']
+
 
 def db_inference_deployment(model, conv, temperature, max_tokens, api_dict=None):
-    client = openai.OpenAI(base_url=model, api_key = os.environ["MOSAICML_API_KEY"])
+    from transformers import AutoTokenizer
     messages = conv.to_openai_api_messages()
-    responses = client.with_options(max_retries=5).chat.completions.create(
-        messages = messages,
-        temperature = temperature,
-        model = 'mixtral',
-        max_tokens=max_tokens,
-    )
-    output = responses.choices[0].message.content
+    tokenizer = AutoTokenizer.from_pretrained("rajammanabrolu/gpt-4-chat", trust_remote_code=True)
+    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    responses = get_response_batch(prompt, model, max_tokens, temperature = temperature)
+    output = responses[0]
     return output
 
 
