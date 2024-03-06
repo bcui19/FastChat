@@ -12,6 +12,7 @@ import concurrent.futures
 import openai
 import shortuuid
 import tqdm
+from transformers import AutoTokenizer
 
 from fastchat.llm_judge.common import (
     load_questions,
@@ -26,7 +27,7 @@ from fastchat.model.model_adapter import get_conversation_template, ANTHROPIC_MO
 
 
 def get_answer(
-    question: dict, model: str, num_choices: int, max_tokens: int, answer_file: str
+    question: dict, model: str, tokenizer, num_choices: int, max_tokens: int, answer_file: str
 ):
     assert (
         args.force_temperature is not None and "required_temperature" in question.keys()
@@ -57,7 +58,7 @@ def get_answer(
                     chat_state, model, conv, temperature, max_tokens
                 )
             elif "https://" in model:
-                output = db_inference_deployment(model, conv, temperature, max_tokens)
+                output = db_inference_deployment(model, tokenizer, conv, temperature, max_tokens)
             else:
                 output = chat_completion_openai(model, conv, temperature, max_tokens)
 
@@ -132,6 +133,8 @@ if __name__ == "__main__":
         answer_file = f"data/{args.bench_name}/model_answer/{args.model_name}.jsonl"
     print(f"Output to {answer_file}")
 
+    tokenizer = AutoTokenizer.from_pretrained("rajammanabrolu/gpt-4-chat", trust_remote_code=True)
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.parallel) as executor:
         futures = []
         for question in questions:
@@ -139,6 +142,7 @@ if __name__ == "__main__":
                 get_answer,
                 question,
                 args.model,
+                tokenizer,
                 args.num_choices,
                 args.max_tokens,
                 answer_file,

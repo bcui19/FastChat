@@ -505,10 +505,9 @@ def get_response_batch(prompts, url, max_tokens, temperature, retries_left=3):
         return responses# , finish_reasons, response['usage']['prompt_tokens'], response['usage']['completion_tokens']
 
 
-def db_inference_deployment(model, conv, temperature, max_tokens, api_dict=None):
+def db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_dict=None):
     from transformers import AutoTokenizer
     messages = conv.to_openai_api_messages()
-    tokenizer = AutoTokenizer.from_pretrained("rajammanabrolu/gpt-4-chat", trust_remote_code=True)
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     responses = get_response_batch(prompt, model, max_tokens, temperature = temperature)
     output = responses[0]
