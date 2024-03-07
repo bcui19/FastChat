@@ -488,7 +488,7 @@ def get_response_batch(prompts, url, max_tokens, temperature, retries_left=3):
             print("Retrying...")
             # sleep for longer each retry
             time.sleep(5 * (6 - retries_left))
-            return get_response_batch(prompts, stop_tokens, temperature=temperature, retries_left=retries_left-1)
+            return get_response_batch(prompts, url, max_tokens, temperature=temperature, retries_left=retries_left-1)
         else:
             raise Exception("Too many retries")
     else:
