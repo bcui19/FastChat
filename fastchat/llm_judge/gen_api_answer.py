@@ -57,7 +57,7 @@ def get_answer(
                 chat_state, output = chat_completion_palm(
                     chat_state, model, conv, temperature, max_tokens
                 )
-            elif "https://" in model:
+            elif "https://" in model or "http://" in model:
                 output = db_inference_deployment(model, tokenizer, conv, temperature, max_tokens)
             else:
                 output = chat_completion_openai(model, conv, temperature, max_tokens)
