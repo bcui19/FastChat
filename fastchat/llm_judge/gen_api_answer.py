@@ -32,7 +32,7 @@ import time
 log = logging.getLogger(__name__)
 
 
-def block_until_ready(base_url: str, max_minutes: int = 12):
+def block_until_ready(base_url: str, max_minutes: int = 45):
     """Block until the endpoint is ready."""
     sleep_s = 5
     timout_s = max_minutes * 60  # At max, wait 5 minutes
