@@ -25,6 +25,38 @@ from fastchat.llm_judge.common import (
 from fastchat.llm_judge.gen_model_answer import reorg_answer_file
 from fastchat.model.model_adapter import get_conversation_template, ANTHROPIC_MODEL_LIST
 
+import requests
+import logging
+import time
+
+log = logging.getLogger(__name__)
+
+
+def block_until_ready(base_url: str, max_minutes: int = 12):
+    """Block until the endpoint is ready."""
+    sleep_s = 5
+    timout_s = max_minutes * 60  # At max, wait 5 minutes
+
+    ping_url = f'{base_url}/ping'
+
+    waited_s = 0
+    while True:
+        try:
+            requests.get(ping_url)
+            log.info(f'Endpoint {ping_url} is ready')
+            break
+        except requests.exceptions.ConnectionError:
+            log.debug(
+                f'Endpoint {ping_url} not ready yet. Sleeping {sleep_s} seconds'
+            )
+            time.sleep(sleep_s)
+            waited_s += sleep_s
+
+        if waited_s >= timout_s:
+            raise TimeoutError(
+                f'Endpoint {ping_url} did not become read after {waited_s:,} seconds, exiting'
+            )
+
 
 def get_answer(
     question: dict, model: str, tokenizer, num_choices: int, max_tokens: int, answer_file: str
@@ -58,6 +90,7 @@ def get_answer(
                     chat_state, model, conv, temperature, max_tokens
                 )
             elif "https://" in model or "http://" in model:
+                block_until_ready(model)
                 output = db_inference_deployment(model, tokenizer, conv, temperature, max_tokens)
             else:
                 output = chat_completion_openai(model, conv, temperature, max_tokens)
