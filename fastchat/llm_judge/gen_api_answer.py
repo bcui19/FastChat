@@ -150,7 +150,6 @@ if __name__ == "__main__":
         "--parallel", type=int, default=1, help="The number of concurrent API calls."
     )
     parser.add_argument("--openai-api-base", type=str, default=None)
-    parser.add_argument("--repeats", type=int, default=1)
     args = parser.parse_args()
 
     if args.openai_api_base is not None:
@@ -159,30 +158,31 @@ if __name__ == "__main__":
     question_file = f"data/{args.bench_name}/question.jsonl"
     questions = load_questions(question_file, args.question_begin, args.question_end)
 
-    for idx in range(args.repeats):
-        if args.answer_file:
-            raise NotImplementedError()
-            # answer_file = args.answer_file
-        else:
-            answer_file = f"data/{args.bench_name}/model_answer/{args.model}-{idx+1}.jsonl"
-        print(f"Output to {answer_file}")
+    if args.answer_file:
+        answer_file = args.answer_file
+    else:
+        answer_file = f"data/{args.bench_name}/model_answer/{args.model_name}.jsonl"
+    print(f"Output to {answer_file}")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=args.parallel) as executor:
-            futures = []
-            for question in questions:
-                future = executor.submit(
-                    get_answer,
-                    question,
-                    args.model,
-                    args.num_choices,
-                    args.max_tokens,
-                    answer_file,
-                )
-                futures.append(future)
+    tokenizer = AutoTokenizer.from_pretrained("rajammanabrolu/gpt-4-chat", trust_remote_code=True)
 
-            for future in tqdm.tqdm(
-                concurrent.futures.as_completed(futures), total=len(futures)
-            ):
-                future.result()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.parallel) as executor:
+        futures = []
+        for question in questions:
+            future = executor.submit(
+                get_answer,
+                question,
+                args.model,
+                tokenizer,
+                args.num_choices,
+                args.max_tokens,
+                answer_file,
+            )
+            futures.append(future)
 
-        reorg_answer_file(answer_file)
+        for future in tqdm.tqdm(
+            concurrent.futures.as_completed(futures), total=len(futures)
+        ):
+            future.result()
+
+    reorg_answer_file(answer_file)

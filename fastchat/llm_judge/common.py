@@ -756,22 +756,3 @@ def get_model_list(answer_dir):
     file_paths = glob.glob(f"{answer_dir}/*.jsonl")
     file_names = [os.path.splitext(os.path.basename(f))[0] for f in file_paths]
     return file_names
-
-def expand_model_list(model_list, answer_dir, pre_tag=True):
-    if pre_tag:
-        model_list = [model + '*' for model in model_list]
-    def glob_files(glob_path):
-        file_paths = glob.glob(f"{answer_dir}/{glob_path}.jsonl")
-        file_names = [os.path.splitext(os.path.basename(f))[0] for f in file_paths]
-        return file_names
-    did_pop = False
-    for idx in range(len(model_list)):
-        if '*' in model_list[idx]:
-            glob_path = model_list.pop(idx)
-            model_list += glob_files(glob_path)
-            did_pop = True
-            break
-    if not did_pop:
-        return model_list
-    else:
-        return expand_model_list(model_list, answer_dir, pre_tag=False)

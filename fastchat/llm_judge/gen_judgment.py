@@ -17,7 +17,6 @@ from fastchat.llm_judge.common import (
     play_a_match_pair,
     play_a_match_single,
     get_model_list,
-    expand_model_list,
     Judge,
     MatchPair,
     MatchSingle,
@@ -230,7 +229,7 @@ if __name__ == "__main__":
     if args.model_list is None:
         models = get_model_list(answer_dir)
     else:
-        models = expand_model_list(args.model_list, answer_dir)
+        models = args.model_list
 
     if args.mode == "single":
         judges = make_judge_single(args.judge_model, judge_prompts)
