@@ -43,12 +43,10 @@ def block_until_ready(base_url: str, max_minutes: int = 45):
     while True:
         try:
             requests.get(ping_url)
-            log.info(f'Endpoint {ping_url} is ready')
+            print (f'Endpoint {ping_url} is ready')
             break
         except requests.exceptions.ConnectionError:
-            log.debug(
-                f'Endpoint {ping_url} not ready yet. Sleeping {sleep_s} seconds'
-            )
+            print (f'Endpoint {ping_url} not ready yet. Sleeping {sleep_s} seconds')
             time.sleep(sleep_s)
             waited_s += sleep_s
 
