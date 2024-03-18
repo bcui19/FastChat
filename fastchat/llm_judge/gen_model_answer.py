@@ -201,7 +201,6 @@ def reorg_answer_file(answer_file):
     qids = sorted(list(answers.keys()))
     with open(answer_file, "w") as fout:
         for qid in qids:
-            print (f"for question id: {qid} answer is: {answers[qid]}")
             fout.write(answers[qid])
 
 
