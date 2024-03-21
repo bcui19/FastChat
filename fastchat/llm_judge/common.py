@@ -22,7 +22,7 @@ from fastchat.model.model_adapter import (
 
 # API setting constants
 API_MAX_RETRY = 16
-API_RETRY_SLEEP = 10
+API_RETRY_SLEEP = 120
 API_ERROR_OUTPUT = "$ERROR$"
 
 TIE_DELTA = 0.1
@@ -478,14 +478,22 @@ def chat_completion_anthropic(model, conv, temperature, max_tokens, api_dict=Non
         try:
             c = anthropic.Anthropic(api_key=api_key)
             prompt = conv.get_prompt()
-            response = c.completions.create(
+            # response = c.completions.create(
+            #     model=model,
+            #     prompt=prompt,
+            #     stop_sequences=[anthropic.HUMAN_PROMPT],
+            #     max_tokens_to_sample=max_tokens,
+            #     temperature=temperature,
+            # )
+            # output = response.completion
+            messages = conv.to_openai_api_messages()
+            response = c.messages.create(
                 model=model,
-                prompt=prompt,
-                stop_sequences=[anthropic.HUMAN_PROMPT],
-                max_tokens_to_sample=max_tokens,
+                messages=messages,
                 temperature=temperature,
+                max_tokens=max_tokens,
             )
-            output = response.completion
+            output = response.content[0].text
             break
         except anthropic.APIError as e:
             print(type(e), e)
