@@ -98,7 +98,7 @@ def get_answer(
             elif model.startswith('mistral'):
                 from mistralai.client import MistralClient
                 
-                client =  MistralClient(
+                client = MistralClient(
                     endpoint=os.environ["MISTRAL_URL"],
                     api_key=os.environ["MISTRAL_API_KEY"],
                 )
@@ -111,6 +111,8 @@ def get_answer(
                 )
                 
                 output = chat_response.choices[0].message.content
+                
+                print(output)
                 
             elif "https://" in model or "http://" in model:
                 block_until_ready(model)
