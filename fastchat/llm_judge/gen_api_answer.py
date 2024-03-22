@@ -95,6 +95,22 @@ def get_answer(
                     'prompt': None,
                     'messages': conv.to_openai_api_messages()
                 })
+            elif model.startswith('mistral'):
+                from mistralai.client import MistralClient
+                
+                client =  MistralClient(
+                    endpoint=os.environ["MISTRAL_URL"],
+                    api_key=os.environ["MISTRAL_API_KEY"],
+                )
+                
+                chat_response = client.chat(
+                    messages=conv.to_openai_api_messages(),
+                    model='azureai',
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                
+                output = chat_response.choices[0].message.content
                 
             elif "https://" in model or "http://" in model:
                 block_until_ready(model)
