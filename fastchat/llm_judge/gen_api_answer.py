@@ -91,7 +91,9 @@ def get_answer(
                 api_key = os.environ["DATABRICKS_REAL_TOKEN"]
                 output = db_inference_deployment(f'https://e2-dogfood.staging.cloud.databricks.com/serving-endpoints/{model}/invocations', tokenizer, conv, temperature, max_tokens, api_key=api_key, api_args={
                     'model': model,
-                    'use_raw_prompt': None
+                    'use_raw_prompt': None,
+                    'prompt': None,
+                    'messages': conv.to_openai_api_messages()
                 })
             elif "https://" in model or "http://" in model:
                 block_until_ready(model)
