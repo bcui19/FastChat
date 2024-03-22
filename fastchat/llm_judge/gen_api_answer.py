@@ -24,12 +24,27 @@ from fastchat.llm_judge.common import (
 )
 from fastchat.llm_judge.gen_model_answer import reorg_answer_file
 from fastchat.model.model_adapter import get_conversation_template, ANTHROPIC_MODEL_LIST
+from mistralai.client import MistralClient
 
 import requests
 import logging
 import time
 
 log = logging.getLogger(__name__)
+
+class _MistralClient:
+    client = None
+    
+    @staticmethod
+    def get():
+        return _MistralClient.client
+    
+    @staticmethod
+    def set():
+        _MistralClient.client = MistralClient(
+        endpoint=os.environ["MISTRAL_URL"],
+        api_key=os.environ["MISTRAL_API_KEY"],
+    )
 
 
 def block_until_ready(base_url: str, max_minutes: int = 45):
@@ -95,15 +110,11 @@ def get_answer(
                     'prompt': None,
                     'messages': conv.to_openai_api_messages()
                 })
-            elif model.startswith('mistral'):
-                from mistralai.client import MistralClient
-                
-                client = MistralClient(
-                    endpoint=os.environ["MISTRAL_URL"],
-                    api_key=os.environ["MISTRAL_API_KEY"],
-                )
-                
-                chat_response = client.chat(
+            elif model.startswith('mistral'):              
+                if not _MistralClient.get():
+                    _MistralClient.set()
+                  
+                chat_response = _MistralClient.get().chat(
                     messages=conv.to_openai_api_messages(),
                     model='azureai',
                     temperature=temperature,
@@ -112,7 +123,10 @@ def get_answer(
                 
                 output = chat_response.choices[0].message.content
                 
+                print("################")
+                print("Question Id: ", question["question_id"])
                 print(output)
+                print("################")
                 
             elif "https://" in model or "http://" in model:
                 block_until_ready(model)
