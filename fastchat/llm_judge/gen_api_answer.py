@@ -89,7 +89,7 @@ def get_answer(
                 )
             elif model.startswith('databricks'):
                 api_key = os.environ["DATABRICKS_REAL_TOKEN"]
-                output = db_inference_deployment('https://e2-dogfood.staging.cloud.databricks.com/serving-endpoints/databricks-llama-2-70b-chat/invocations', tokenizer, conv, temperature, max_tokens, api_key=api_key, api_args={
+                output = db_inference_deployment(f'https://e2-dogfood.staging.cloud.databricks.com/serving-endpoints/{model}/invocations', tokenizer, conv, temperature, max_tokens, api_key=api_key, api_args={
                     'model': model,
                 })
             elif "https://" in model or "http://" in model:
