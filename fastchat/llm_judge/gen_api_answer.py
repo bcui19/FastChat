@@ -88,7 +88,7 @@ def get_answer(
                     chat_state, model, conv, temperature, max_tokens
                 )
             elif model == 'llama-2-70b-chat':
-                api_key = os.environ["DATABRICKS_TOKEN"]
+                api_key = os.environ["DATABRICKS_REAL_TOKEN"]
                 output = db_inference_deployment('https://e2-dogfood.staging.cloud.databricks.com/serving-endpoints', tokenizer, conv, temperature, max_tokens, api_key=api_key, api_args={
                     'model': model,
                 })
