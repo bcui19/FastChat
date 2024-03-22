@@ -25,6 +25,7 @@ from fastchat.llm_judge.common import (
 from fastchat.llm_judge.gen_model_answer import reorg_answer_file
 from fastchat.model.model_adapter import get_conversation_template, ANTHROPIC_MODEL_LIST
 from mistralai.client import MistralClient
+from mistralai.exceptions import MistralAPIException
 
 import requests
 import logging
@@ -114,12 +115,24 @@ def get_answer(
                 if not _MistralClient.get():
                     _MistralClient.set()
                   
-                chat_response = _MistralClient.get().chat(
-                    messages=conv.to_openai_api_messages(),
-                    model='azureai',
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
+                try:
+                    chat_response = _MistralClient.get().chat(
+                        messages=conv.to_openai_api_messages(),
+                        model='azureai',
+                        temperature=temperature,
+                        max_tokens=max_tokens
+                    )
+                except MistralAPIException as e:
+                    # Not sure what is happening here but sometimes we get a HTTP 424?
+                    time.sleep(5)
+                    _MistralClient.set()
+                    chat_response = _MistralClient.get().chat(
+                        messages=conv.to_openai_api_messages(),
+                        model='azureai',
+                        temperature=temperature,
+                        max_tokens=max_tokens
+                    )
+                    
                 
                 output = chat_response.choices[0].message.content
                 
