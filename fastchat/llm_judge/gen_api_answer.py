@@ -114,26 +114,25 @@ def get_answer(
             elif model.startswith('mistral'):              
                 if not _MistralClient.get():
                     _MistralClient.set()
-                  
-                try:
-                    chat_response = _MistralClient.get().chat(
-                        messages=conv.to_openai_api_messages(),
-                        model='azureai',
-                        temperature=temperature,
-                        max_tokens=max_tokens
-                    )
-                except MistralAPIException as e:
-                    # Not sure what is happening here but sometimes we get a HTTP 424?
-                    time.sleep(5)
-                    _MistralClient.set()
-                    chat_response = _MistralClient.get().chat(
-                        messages=conv.to_openai_api_messages(),
-                        model='azureai',
-                        temperature=temperature,
-                        max_tokens=max_tokens
-                    )
                     
-                
+                def retry_request(retry=5):
+                    if retry == 0:
+                        return None
+
+                    try:
+                        return _MistralClient.get().chat(
+                            messages=conv.to_openai_api_messages(),
+                            model='azureai',
+                            temperature=temperature,
+                            max_tokens=max_tokens
+                        )
+                    except MistralAPIException as e:
+                        time.sleep(3 * retry)
+                        _MistralClient.set()
+                        
+                        return retry_request(retry - 1)
+                  
+                chat_response = retry_request()
                 output = chat_response.choices[0].message.content
                 
                 print("################")
