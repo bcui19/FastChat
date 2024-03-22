@@ -481,7 +481,7 @@ def get_response_batch(prompts, url, max_tokens, temperature, api_key, api_args,
     
     # Remove things from payload
     for k,v in api_args.items():
-        if v == None:
+        if v is None:
             data.pop(k)
     
     response = requests.post(url, headers=headers, json=data, timeout=360)
