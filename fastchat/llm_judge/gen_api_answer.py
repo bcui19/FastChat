@@ -87,9 +87,9 @@ def get_answer(
                 chat_state, output = chat_completion_palm(
                     chat_state, model, conv, temperature, max_tokens
                 )
-            elif model == 'llama-2-70b-chat':
+            elif model.startswith('databricks'):
                 api_key = os.environ["DATABRICKS_REAL_TOKEN"]
-                output = db_inference_deployment('https://e2-dogfood.staging.cloud.databricks.com/serving-endpoints', tokenizer, conv, temperature, max_tokens, api_key=api_key, api_args={
+                output = db_inference_deployment('https://e2-dogfood.staging.cloud.databricks.com/serving-endpoints/databricks-llama-2-70b-chat/invocations', tokenizer, conv, temperature, max_tokens, api_key=api_key, api_args={
                     'model': model,
                 })
             elif "https://" in model or "http://" in model:
