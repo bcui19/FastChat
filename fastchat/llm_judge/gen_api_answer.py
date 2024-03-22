@@ -95,6 +95,7 @@ def get_answer(
                     'prompt': None,
                     'messages': conv.to_openai_api_messages()
                 })
+                
             elif "https://" in model or "http://" in model:
                 block_until_ready(model)
                 api_key = os.environ["MOSAICML_API_KEY"]

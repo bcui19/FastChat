@@ -505,10 +505,12 @@ def get_response_batch(prompts, url, max_tokens, temperature, api_key, api_args,
         responses = []
         finish_reasons = []
         for i, choice in enumerate(response["choices"]):
-
-            responses.append(choice["text"].strip())
-            finish_reasons.append(choice["finish_reason"])
-        
+            if "text" in choice:
+                responses.append(choice["text"].strip())
+                finish_reasons.append(choice["finish_reason"])
+            else: # assuming chat
+                responses.append(choice["message"]["content"].strip())
+                finish_reasons.append(choice["finish_reason"])
         return responses# , finish_reasons, response['usage']['prompt_tokens'], response['usage']['completion_tokens']
 
 
