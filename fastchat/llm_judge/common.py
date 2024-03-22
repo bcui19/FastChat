@@ -22,7 +22,7 @@ from fastchat.model.model_adapter import (
 
 # API setting constants
 API_MAX_RETRY = 16
-API_RETRY_SLEEP = 10
+API_RETRY_SLEEP = 120
 API_ERROR_OUTPUT = "$ERROR$"
 
 TIE_DELTA = 0.1
@@ -466,16 +466,17 @@ def chat_completion_openai_azure(model, conv, temperature, max_tokens, api_dict=
 
     return output
 
-def get_response_batch(prompts, url, max_tokens, temperature, retries_left=3):
+def get_response_batch(prompts, url, max_tokens, temperature, api_key, api_args, retries_left=3):
     import requests
-    headers = {"Authorization": os.environ["MOSAICML_API_KEY"], "Content-Type": "application/json"}
+    headers = {"Authorization": api_key, "Content-Type": "application/json"}
 
     data = {
         "prompt": prompts, 
         "temperature": temperature,
         "max_tokens": max_tokens,
         "use_raw_prompt": True,
-        "stop": ["<|im_end|>"]
+        "stop": ["<|im_end|>"],
+        **api_args
     }
     response = requests.post(url, headers=headers, json=data, timeout=360)
 
@@ -488,7 +489,7 @@ def get_response_batch(prompts, url, max_tokens, temperature, retries_left=3):
             print("Retrying...")
             # sleep for longer each retry
             time.sleep(5 * (6 - retries_left))
-            return get_response_batch(prompts, url, max_tokens, temperature=temperature, retries_left=retries_left-1)
+            return get_response_batch(prompts, url, max_tokens, temperature=temperature, api_key=api_key, api_args=api_args, retries_left=retries_left-1)
         else:
             raise Exception("Too many retries")
     else:
@@ -505,11 +506,11 @@ def get_response_batch(prompts, url, max_tokens, temperature, retries_left=3):
         return responses# , finish_reasons, response['usage']['prompt_tokens'], response['usage']['completion_tokens']
 
 
-def db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_dict=None):
+def db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_key, api_args={}, api_dict=None):
     from transformers import AutoTokenizer
     messages = conv.to_openai_api_messages()
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    responses = get_response_batch(prompt, model, max_tokens, temperature = temperature)
+    responses = get_response_batch(prompt, model, max_tokens, api_key=api_key, api_args=api_args, temperature = temperature)
     output = responses[0]
     return output
 
@@ -525,14 +526,24 @@ def chat_completion_anthropic(model, conv, temperature, max_tokens, api_dict=Non
         try:
             c = anthropic.Anthropic(api_key=api_key)
             prompt = conv.get_prompt()
-            response = c.completions.create(
-                model=model,
-                prompt=prompt,
-                stop_sequences=[anthropic.HUMAN_PROMPT],
-                max_tokens_to_sample=max_tokens,
-                temperature=temperature,
-            )
-            output = response.completion
+            if model in [  "claude-3-haiku-20240307", "claude-3-opus-20240229", "claude-3-sonnet-20240229" ]:
+                messages = conv.to_openai_api_messages()
+                response = c.messages.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                output = response.content[0].text
+            else:
+                response = c.completions.create(
+                    model=model,
+                    prompt=prompt,
+                    stop_sequences=[anthropic.HUMAN_PROMPT],
+                    max_tokens_to_sample=max_tokens,
+                    temperature=temperature,
+                )
+                output = response.completion
             break
         except anthropic.APIError as e:
             print(type(e), e)

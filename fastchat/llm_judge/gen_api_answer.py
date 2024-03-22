@@ -87,9 +87,15 @@ def get_answer(
                 chat_state, output = chat_completion_palm(
                     chat_state, model, conv, temperature, max_tokens
                 )
+            elif model == 'llama-2-70b-chat':
+                api_key = os.environ["DATABRICKS_TOKEN"]
+                output = db_inference_deployment('https://e2-dogfood.staging.cloud.databricks.com/serving-endpoints', tokenizer, conv, temperature, max_tokens, api_key=api_key, api_args={
+                    'model': model,
+                })
             elif "https://" in model or "http://" in model:
                 block_until_ready(model)
-                output = db_inference_deployment(model, tokenizer, conv, temperature, max_tokens)
+                api_key = os.environ["MOSAICML_API_KEY"]
+                output = db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_key=api_key)
             else:
                 output = chat_completion_openai(model, conv, temperature, max_tokens)
 
