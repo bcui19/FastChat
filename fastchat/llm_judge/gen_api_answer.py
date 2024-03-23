@@ -41,11 +41,8 @@ class _MistralClient:
         return _MistralClient.client
     
     @staticmethod
-    def set():
-        _MistralClient.client = MistralClient(
-        endpoint=os.environ["MISTRAL_URL"],
-        api_key=os.environ["MISTRAL_API_KEY"],
-    )
+    def set(mistral_client):
+        _MistralClient.client = mistral_client
 
 
 def block_until_ready(base_url: str, max_minutes: int = 45):
@@ -111,9 +108,12 @@ def get_answer(
                     'prompt': None,
                     'messages': conv.to_openai_api_messages()
                 })
-            elif model.startswith('mistral'):              
+            elif model == 'mistral-large':              
                 if not _MistralClient.get():
-                    _MistralClient.set()
+                    _MistralClient.set(MistralClient(
+                        endpoint=os.environ["MISTRAL_URL"],
+                        api_key=os.environ["MISTRAL_API_KEY"],
+                    ))
                     
                 def retry_request(retry=5):
                     if retry == 0:
@@ -134,11 +134,31 @@ def get_answer(
                   
                 chat_response = retry_request()
                 output = chat_response.choices[0].message.content
-                
-                print("################")
-                print("Question Id: ", question["question_id"])
-                print(output)
-                print("################")
+            elif model.startswith("mistral-medium"):
+                if not _MistralClient.get():
+                    _MistralClient.set(_MistralClient.set(MistralClient(
+                        api_key=os.environ["MISTRAL_MEDIUM_API_KEY"],
+                    )))
+                    
+                def retry_request(retry=5):
+                    if retry == 0:
+                        return None
+
+                    try:
+                        return _MistralClient.get().chat(
+                            messages=conv.to_openai_api_messages(),
+                            model=model,
+                            temperature=temperature,
+                            max_tokens=max_tokens
+                        )
+                    except MistralAPIException as e:
+                        time.sleep(3 * retry)
+                        _MistralClient.set()
+                        
+                        return retry_request(retry - 1)
+                  
+                chat_response = retry_request()
+                output = chat_response.choices[0].message.content
                 
             elif "https://" in model or "http://" in model:
                 block_until_ready(model)
