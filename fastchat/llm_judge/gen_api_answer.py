@@ -136,9 +136,9 @@ def get_answer(
                 output = chat_response.choices[0].message.content
             elif model.startswith("mistral-medium"):
                 if not _MistralClient.get():
-                    _MistralClient.set(_MistralClient.set(MistralClient(
+                    _MistralClient.set(MistralClient(
                         api_key=os.environ["MISTRAL_MEDIUM_API_KEY"],
-                    )))
+                    ))
                     
                 def retry_request(retry=5):
                     if retry == 0:
