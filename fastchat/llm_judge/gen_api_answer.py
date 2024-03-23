@@ -159,10 +159,14 @@ def get_answer(
                   
                 chat_response = retry_request()
                 output = chat_response.choices[0].message.content
-                
+            elif model == 'meta-llama/Llama-2-70b-chat-hf':
+                output = chat_completion_openai(model, conv, temperature, max_tokens, api_dict={
+                    'api_base': 'https://95f8e758a80a.ngrok.app/v1',
+                    'api_key': 'free'
+                }) 
             elif "https://" in model or "http://" in model:
                 block_until_ready(model)
-                api_key = os.environ["MOSAICML_API_KEY"]
+                api_key = os.environ.get("MOSAICML_API_KEY", None)
                 output = db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_key=api_key)
             else:
                 output = chat_completion_openai(model, conv, temperature, max_tokens)
