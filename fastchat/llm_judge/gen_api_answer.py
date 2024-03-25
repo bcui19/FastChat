@@ -86,8 +86,9 @@ def get_answer(
 
     choices = []
     chat_state = None  # for palm-2 model
+    question_id = question["question_id"]
+    print(f"Starting question #{question_id}")
     for i in range(num_choices):
-        print(f"Started {i} of {num_choices}")
         conv = get_conversation_template(model)
 
         turns = []
@@ -176,8 +177,9 @@ def get_answer(
             turns.append(output)
 
         choices.append({"index": i, "turns": turns})
-        print(f"Completed {i} of {num_choices}")
 
+    question_id = question["question_id"]
+    print(f"Completed question #{question_id}")
     # Dump answers
     ans = {
         "question_id": question["question_id"],
