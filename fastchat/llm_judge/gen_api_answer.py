@@ -87,6 +87,7 @@ def get_answer(
     choices = []
     chat_state = None  # for palm-2 model
     for i in range(num_choices):
+        print(f"Started {i} of {num_choices}")
         conv = get_conversation_template(model)
 
         turns = []
