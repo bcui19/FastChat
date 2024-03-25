@@ -99,8 +99,8 @@ class _GeminiClient:
         return _GeminiClient.client
     
     @staticmethod
-    def set():
-        _GeminiClient.client = Gemini()
+    def set(model_name: str):
+        _GeminiClient.client = Gemini(model_name)
 
 
 def block_until_ready(base_url: str, max_minutes: int = 45):
@@ -219,9 +219,9 @@ def get_answer(
                   
                 chat_response = retry_request()
                 output = chat_response.choices[0].message.content
-            elif model == 'gemini/gemini-1.0-pro-latest':
+            elif model == 'gemini-1.0-pro-latest':
                 if not _GeminiClient.get():
-                    _GeminiClient.set()
+                    _GeminiClient.set('gemini-1.0-pro-latest')
                     
                 output = _GeminiClient.get().generate(
                     prompt=conv.to_openai_api_messages(),
