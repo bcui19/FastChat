@@ -419,14 +419,12 @@ def chat_completion_openai(model, conv, temperature, max_tokens, api_dict=None):
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
-            print("##### HEADERS ######")
-            print(response.headers) # What is going on ?!?!?!
+
             output = response["choices"][0]["message"]["content"]
             break
         except openai.error.OpenAIError as e:
             print(type(e), e)
-            print("##### HEADERS ######")
-            print(e.response.headers) # What is going on ?!?!?!
+
             time.sleep(API_RETRY_SLEEP)
 
     return output
