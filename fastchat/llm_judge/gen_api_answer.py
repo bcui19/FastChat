@@ -13,6 +13,7 @@ import openai
 import shortuuid
 import tqdm
 from transformers import AutoTokenizer
+import google.generativeai as google_genai
 
 from fastchat.llm_judge.common import (
     load_questions,
@@ -24,7 +25,6 @@ from fastchat.llm_judge.common import (
 )
 from fastchat.llm_judge.gen_model_answer import reorg_answer_file
 from fastchat.model.model_adapter import get_conversation_template, ANTHROPIC_MODEL_LIST
-from litellm import completion
 from mistralai.client import MistralClient
 from mistralai.exceptions import MistralAPIException
 
@@ -44,6 +44,63 @@ class _MistralClient:
     @staticmethod
     def set(mistral_client):
         _MistralClient.client = mistral_client
+
+class Gemini:
+    
+    _client = None
+    
+    @classmethod
+    def _ensure_client(cls):
+        if cls._client is None:
+            google_genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+            cls._client = True
+    
+    def __init__(self, model_name: str):
+        super().__init__(model_name)
+        self.model = google_genai.GenerativeModel(model_name)
+        ignore = [
+            google_genai.types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+            google_genai.types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            google_genai.types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            google_genai.types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        ]
+        self.safety_settings = {
+            category: google_genai.types.HarmBlockThreshold.BLOCK_NONE
+            for category in ignore
+        }
+    
+    def generate(self, 
+        prompt: str,
+        temperature: float | None = None,
+        max_output_tokens: int | None = None,
+    ) -> str:
+        generation_config=google_genai.types.GenerationConfig(
+            candidate_count=1,
+            max_output_tokens=max_output_tokens,
+            temperature=temperature
+        )
+        response = self.model.generate_content(prompt,
+                safety_settings=self.safety_settings,
+                generation_config=generation_config)
+        return response.text
+
+
+    @classmethod
+    def models(cls):
+        cls._ensure_client()
+        return [m.name for m in google_genai.list_models() 
+                if 'generateContent' in m.supported_generation_methods]
+     
+class _GeminiClient:
+    client = None
+
+    @staticmethod
+    def get():
+        return _GeminiClient.client
+    
+    @staticmethod
+    def set():
+        _GeminiClient.client = Gemini()
 
 
 def block_until_ready(base_url: str, max_minutes: int = 45):
@@ -163,30 +220,15 @@ def get_answer(
                 chat_response = retry_request()
                 output = chat_response.choices[0].message.content
             elif model == 'gemini/gemini-1.0-pro-latest':
-                response = completion({
-                    "model": "gemini/gemini-1.0-pro-latest",
-                    "messages": conv.to_openai_api_messages(),
-                    "safety_settings": [
-                        {
-                            "category": "HARM_CATEGORY_HARASSMENT",
-                            "threshold": "BLOCK_NONE",
-                        },
-                        {
-                            "category": "HARM_CATEGORY_HATE_SPEECH",
-                            "threshold": "BLOCK_NONE",
-                        },
-                        {
-                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                            "threshold": "BLOCK_NONE",
-                        },
-                        {
-                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                            "threshold": "BLOCK_NONE",
-                        },
-                    ]
-                })
+                if not _GeminiClient.get():
+                    _GeminiClient.set()
+                    
+                output = _GeminiClient.get().generate(
+                    prompt=conv.to_openai_api_messages(),
+                    temperature=temperature,
+                    max_output_tokens=max_tokens
+                )
                 
-                output = response.choices[0].message.content
             elif model == 'meta-llama/Llama-2-70b-chat-hf':
                 output = chat_completion_openai(model, conv, temperature, max_tokens, api_dict={
                     'api_base': 'https://95f8e758a80a.ngrok.app/v1',
