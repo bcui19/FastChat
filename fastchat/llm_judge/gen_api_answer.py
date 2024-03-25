@@ -175,6 +175,7 @@ def get_answer(
             turns.append(output)
 
         choices.append({"index": i, "turns": turns})
+        print(f"Completed {i} of {num_choices}")
 
     # Dump answers
     ans = {
