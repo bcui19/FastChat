@@ -24,6 +24,7 @@ from fastchat.llm_judge.common import (
 )
 from fastchat.llm_judge.gen_model_answer import reorg_answer_file
 from fastchat.model.model_adapter import get_conversation_template, ANTHROPIC_MODEL_LIST
+from litellm import completion
 from mistralai.client import MistralClient
 from mistralai.exceptions import MistralAPIException
 
@@ -161,6 +162,31 @@ def get_answer(
                   
                 chat_response = retry_request()
                 output = chat_response.choices[0].message.content
+            elif model == 'gemini/gemini-1.0-pro-latest':
+                response = completion({
+                    "model": "gemini/gemini-1.0-pro-latest",
+                    "messages": conv.to_openai_api_messages(),
+                    "safety_settings": [
+                        {
+                            "category": "HARM_CATEGORY_HARASSMENT",
+                            "threshold": "BLOCK_NONE",
+                        },
+                        {
+                            "category": "HARM_CATEGORY_HATE_SPEECH",
+                            "threshold": "BLOCK_NONE",
+                        },
+                        {
+                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                            "threshold": "BLOCK_NONE",
+                        },
+                        {
+                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                            "threshold": "BLOCK_NONE",
+                        },
+                    ]
+                })
+                
+                output = response.choices[0].message.content
             elif model == 'meta-llama/Llama-2-70b-chat-hf':
                 output = chat_completion_openai(model, conv, temperature, max_tokens, api_dict={
                     'api_base': 'https://95f8e758a80a.ngrok.app/v1',
