@@ -56,7 +56,6 @@ class Gemini:
             cls._client = True
     
     def __init__(self, model_name: str):
-        super().__init__(model_name)
         self.model = google_genai.GenerativeModel(model_name)
         ignore = [
             google_genai.types.HarmCategory.HARM_CATEGORY_HARASSMENT,
