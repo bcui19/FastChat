@@ -188,7 +188,7 @@ def get_answer(
                 )  
                 
                 print(result)
-                output = result.result.candidates[0].content.parts[0].text
+                output = result.candidates[0].content.parts[0].text
                 
             elif model == 'meta-llama/Llama-2-70b-chat-hf':
                 output = chat_completion_openai(model, conv, temperature, max_tokens, api_dict={
