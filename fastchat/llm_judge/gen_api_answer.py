@@ -161,7 +161,7 @@ def get_answer(
                   
                 chat_response = retry_request()
                 output = chat_response.choices[0].message.content
-            elif model == 'gemini-1.0-pro-latest':
+            elif model.startswith('gemini'):
                 google_genai.configure(api_key=os.environ['GEMINI_API_KEY'])
                 google_model = google_genai.GenerativeModel(model)
                 ignore = [
