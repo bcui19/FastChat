@@ -192,7 +192,7 @@ def get_answer(
                             safety_settings=safety_settings
                         )  
                     except Exception as e:
-                        time.sleep((6 - retry) * retry)
+                        time.sleep((9 - retry) * retry)
                         
                         return retry_request(retry - 1)
                     
