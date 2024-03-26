@@ -187,6 +187,7 @@ def get_answer(
                     safety_settings=safety_settings
                 )  
                 
+                print(result)
                 output = result.result.candidates[0].content.parts[0].text
                 
             elif model == 'meta-llama/Llama-2-70b-chat-hf':
