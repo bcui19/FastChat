@@ -181,11 +181,22 @@ def get_answer(
                     temperature=temperature
                 )
                 
-                result = google_model.generate_content(
-                    [ { "role": p["role"], "parts": [ {"text": p["content"] } ] }  for p in conv.to_openai_api_messages() ],
-                    generation_config=generation_config,
-                    safety_settings=safety_settings
-                )  
+                def retry_request(retry=5):
+                    if retry == 0:
+                        return None
+
+                    try:
+                        return google_model.generate_content(
+                            [ { "role": p["role"] if p["role"] != "assistant" else "model", "parts": [ {"text": p["content"] } ] }  for p in conv.to_openai_api_messages() ],
+                            generation_config=generation_config,
+                            safety_settings=safety_settings
+                        )  
+                    except Exception as e:
+                        time.sleep(3 * retry)
+                        
+                        return retry_request(retry - 1)
+                    
+                result = retry_request()
                 
                 print(result)
                 output = result.candidates[0].content.parts[0].text
