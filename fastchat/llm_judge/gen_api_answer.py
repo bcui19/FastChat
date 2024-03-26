@@ -45,63 +45,6 @@ class _MistralClient:
     def set(mistral_client):
         _MistralClient.client = mistral_client
 
-class Gemini:
-    
-    _client = None
-    
-    @classmethod
-    def _ensure_client(cls):
-        if cls._client is None:
-            google_genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-            cls._client = True
-    
-    def __init__(self, model_name: str):
-        self.model = google_genai.GenerativeModel(model_name)
-        ignore = [
-            google_genai.types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-            google_genai.types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-            google_genai.types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-            google_genai.types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        ]
-        self.safety_settings = {
-            category: google_genai.types.HarmBlockThreshold.BLOCK_NONE
-            for category in ignore
-        }
-    
-    def generate(self, 
-        prompt: str,
-        temperature: float | None = None,
-        max_output_tokens: int | None = None,
-    ) -> str:
-        generation_config=google_genai.types.GenerationConfig(
-            candidate_count=1,
-            max_output_tokens=max_output_tokens,
-            temperature=temperature
-        )
-        response = self.model.generate_content(prompt,
-                safety_settings=self.safety_settings,
-                generation_config=generation_config)
-        return response.text
-
-
-    @classmethod
-    def models(cls):
-        cls._ensure_client()
-        return [m.name for m in google_genai.list_models() 
-                if 'generateContent' in m.supported_generation_methods]
-     
-class _GeminiClient:
-    client = None
-
-    @staticmethod
-    def get():
-        return _GeminiClient.client
-    
-    @staticmethod
-    def set(model_name: str):
-        _GeminiClient.client = Gemini(model_name)
-
-
 def block_until_ready(base_url: str, max_minutes: int = 45):
     """Block until the endpoint is ready."""
     sleep_s = 5
@@ -219,14 +162,32 @@ def get_answer(
                 chat_response = retry_request()
                 output = chat_response.choices[0].message.content
             elif model == 'gemini-1.0-pro-latest':
-                if not _GeminiClient.get():
-                    _GeminiClient.set('gemini-1.0-pro-latest')
-                    
-                output = _GeminiClient.get().generate(
-                    prompt=conv.to_openai_api_messages(),
-                    temperature=temperature,
-                    max_output_tokens=max_tokens
+                google_genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+                google_model = google_genai.GenerativeModel(model)
+                ignore = [
+                    google_genai.types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    google_genai.types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    google_genai.types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    google_genai.types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                ]
+                safety_settings = {
+                    category: google_genai.types.HarmBlockThreshold.BLOCK_NONE
+                    for category in ignore
+                }
+                
+                generation_config=google_genai.types.GenerationConfig(
+                    candidate_count=1,
+                    max_output_tokens=max_tokens,
+                    temperature=temperature
                 )
+                
+                result = google_model.generate_content(
+                    [ { "role": p["role"], "parts": [ {"text": p["content"] } ] }  for p in conv.to_openai_api_messages() ],
+                    generation_config=generation_config,
+                    safety_settings=safety_settings
+                )  
+                
+                output = result.result.candidates[0].content.parts[0].text
                 
             elif model == 'meta-llama/Llama-2-70b-chat-hf':
                 output = chat_completion_openai(model, conv, temperature, max_tokens, api_dict={
