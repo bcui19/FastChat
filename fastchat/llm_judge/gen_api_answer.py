@@ -104,7 +104,7 @@ def get_answer(
                 )
             elif model.startswith('databricks'):
                 api_key = os.environ["DATABRICKS_REAL_TOKEN"]
-                output = db_inference_deployment(f'https://e2-dogfood.staging.cloud.databricks.com/serving-endpoints/{model}/invocations', tokenizer, conv, temperature, max_tokens, api_key=api_key, api_args={
+                output = db_inference_deployment(f'https://e2-dogfood.staging.cloud.databricks.com/serving-endpoints/', tokenizer, conv, temperature, max_tokens, api_key=api_key, api_args={
                     'model': model,
                     'use_raw_prompt': None,
                     'prompt': None,
