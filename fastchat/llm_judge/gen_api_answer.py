@@ -70,7 +70,7 @@ def block_until_ready(base_url: str, max_minutes: int = 45):
 
 
 def get_answer(
-    question: dict, model: str, tokenizer, num_choices: int, max_tokens: int, answer_file: str
+    question: dict, model: str, tokenizer, num_choices: int, max_tokens: int, answer_file: str, reward_model_addr: str = None, num_rm_samples: int=1,
 ):
     assert (
         args.force_temperature is not None and "required_temperature" in question.keys()
@@ -209,7 +209,7 @@ def get_answer(
             elif "https://" in model or "http://" in model:
                 block_until_ready(model)
                 api_key = os.environ.get("MOSAICML_API_KEY", None)
-                output = db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_key=api_key)
+                output = db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_key=api_key, reward_model_addr=reward_model_addr, num_rm_samples=num_rm_samples)
             else:
                 output = chat_completion_openai(model, conv, temperature, max_tokens)
 
@@ -271,6 +271,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--parallel", type=int, default=1, help="The number of concurrent API calls."
     )
+    parser.add_argument(
+        "--num_rm_samples", type=int, default=1, help="The number of reward model samples."
+    )
+    parser.add_argument(
+        "--reward_model_addr", type=str, default=1, help="The reward model address."
+    )
+
     parser.add_argument("--openai-api-base", type=str, default=None)
     args = parser.parse_args()
 
@@ -291,14 +298,26 @@ if __name__ == "__main__":
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.parallel) as executor:
         futures = []
         for question in questions:
-            future = executor.submit(
-                get_answer,
+            # future = executor.submit(
+            #     get_answer,
+            #     question,
+            #     args.model,
+            #     tokenizer,
+            #     args.num_choices,
+            #     args.max_tokens,
+            #     answer_file,
+            #     args.reward_model_addr,
+            #     args.num_rm_samples,
+            # )
+            get_answer(
                 question,
                 args.model,
                 tokenizer,
                 args.num_choices,
                 args.max_tokens,
                 answer_file,
+                args.reward_model_addr,
+                args.num_rm_samples,
             )
             futures.append(future)
 

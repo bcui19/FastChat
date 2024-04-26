@@ -9,6 +9,7 @@ import json
 import os
 import re
 import time
+import requests
 from typing import Optional
 
 import openai
@@ -516,11 +517,62 @@ def get_response_batch(prompts, url, max_tokens, temperature, api_key, api_args,
         return responses# , finish_reasons, response['usage']['prompt_tokens'], response['usage']['completion_tokens']
 
 
-def db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_key, api_args={}, api_dict=None):
+def pairwise_reward_model_inf(url, input_ids, retries_left=3):
+    custom_input = [{
+        'input_ids': input_ids,
+    }]
+
+    headers = {"Authorization": os.environ['MOSAICML_API_KEY'],
+               "Content-Type": "application/json"}
+
+    request = {'custom_input': custom_input, 'prompt': ''}
+    inf_data = json.dumps(request)
+
+    response = requests.post(f'{url}',
+                                headers=headers,
+                                data=inf_data,
+                                timeout=360)
+
+    if response.status_code == 400 and 'Please reduce the length of your prompt.' in response.text:
+        return None
+    elif response.status_code != 200:
+        if retries_left > 0:
+            print("Retrying...", response.status_code)
+            # sleep for longer each retry
+            time.sleep(5 * (6 - retries_left))
+            return get_response_batch(input_ids, retries_left=retries_left - 1)
+        else:
+            raise Exception('Too many retries')
+    else:
+        response = response.json()
+        # print("REWARD CALL", response)
+
+        final_rewards = []
+        for choice in response['choices']:
+            final_reward = choice['metadata']['rewards'][-1]
+            final_rewards.append(final_reward)
+        return final_rewards
+
+
+def db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_key, api_args={}, api_dict=None, reward_model_addr=None, num_rm_samples=1):
     from transformers import AutoTokenizer
     messages = conv.to_openai_api_messages()
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    responses = get_response_batch(prompt, model, max_tokens, api_key=api_key, api_args=api_args, temperature = temperature)
+    
+    samples = []
+    for _ in range(num_rm_samples):
+        responses = get_response_batch(prompt, model, max_tokens, api_key=api_key, api_args=api_args, temperature = temperature)[0]
+
+        rm_messages = conv.to_openai_api_messages()
+        rm_messages.append({'role': 'assistant', 'content': responses})
+        rm_input = tokenizer.apply_chat_template(rm_messages, tokenize = True) + [tokenizer.eos_token_id]
+
+        reward_score = pairwise_reward_model_inf(reward_model_addr, rm_input)[0]
+        print (reward_score)
+        samples.append((responses, reward_score))
+
+        assert False
+
     output = responses[0]
     return output
 
