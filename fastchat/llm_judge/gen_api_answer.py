@@ -298,18 +298,8 @@ if __name__ == "__main__":
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.parallel) as executor:
         futures = []
         for question in questions:
-            # future = executor.submit(
-            #     get_answer,
-            #     question,
-            #     args.model,
-            #     tokenizer,
-            #     args.num_choices,
-            #     args.max_tokens,
-            #     answer_file,
-            #     args.reward_model_addr,
-            #     args.num_rm_samples,
-            # )
-            get_answer(
+            future = executor.submit(
+                get_answer,
                 question,
                 args.model,
                 tokenizer,
@@ -320,6 +310,17 @@ if __name__ == "__main__":
                 args.num_rm_samples,
             )
             futures.append(future)
+
+            # get_answer(
+            #     question,
+            #     args.model,
+            #     tokenizer,
+            #     args.num_choices,
+            #     args.max_tokens,
+            #     answer_file,
+            #     args.reward_model_addr,
+            #     args.num_rm_samples,
+            # )
 
         for future in tqdm.tqdm(
             concurrent.futures.as_completed(futures), total=len(futures)

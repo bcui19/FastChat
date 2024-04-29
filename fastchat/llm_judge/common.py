@@ -568,13 +568,14 @@ def db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api
         rm_input = tokenizer.apply_chat_template(rm_messages, tokenize = True) + [tokenizer.eos_token_id]
 
         reward_score = pairwise_reward_model_inf(reward_model_addr, rm_input)[0]
-        print (reward_score)
         samples.append((responses, reward_score))
 
-        assert False
-
-    output = responses[0]
+    samples = sorted(samples, key = lambda x: x[1])
+    output = samples[-1][0]
     return output
+
+    # output = responses[0]
+    # return output
 
 
 def chat_completion_anthropic(model, conv, temperature, max_tokens, api_dict=None):
