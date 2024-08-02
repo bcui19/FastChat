@@ -70,7 +70,7 @@ def block_until_ready(base_url: str, max_minutes: int = 45):
 
 
 def get_answer(
-    question: dict, model: str, tokenizer, num_choices: int, max_tokens: int, answer_file: str
+    question: dict, model: str, model_name: str, tokenizer, num_choices: int, max_tokens: int, answer_file: str
 ):
     assert (
         args.force_temperature is not None and "required_temperature" in question.keys()
@@ -209,7 +209,7 @@ def get_answer(
             elif "https://" in model or "http://" in model:
                 block_until_ready(model)
                 api_key = os.environ.get("MOSAICML_API_KEY", None)
-                output = db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_key=api_key)
+                output = db_inference_deployment(model, model_name, tokenizer, conv, temperature, max_tokens, api_key=api_key)
             else:
                 output = chat_completion_openai(model, conv, temperature, max_tokens)
 
@@ -286,7 +286,7 @@ if __name__ == "__main__":
         answer_file = f"data/{args.bench_name}/model_answer/{args.model_name}.jsonl"
     print(f"Output to {answer_file}")
 
-    tokenizer = AutoTokenizer.from_pretrained("rajammanabrolu/gpt-4-chat", trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf", trust_remote_code=True)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.parallel) as executor:
         futures = []
@@ -295,6 +295,7 @@ if __name__ == "__main__":
                 get_answer,
                 question,
                 args.model,
+                args.model_name,
                 tokenizer,
                 args.num_choices,
                 args.max_tokens,

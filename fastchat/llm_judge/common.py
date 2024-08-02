@@ -468,16 +468,17 @@ def chat_completion_openai_azure(model, conv, temperature, max_tokens, api_dict=
 
     return output
 
-def get_response_batch(prompts, url, max_tokens, temperature, api_key, api_args, retries_left=3):
+def get_response_batch(prompts, url, model_name, max_tokens, temperature, api_key, api_args, retries_left=3):
     import requests
     headers = {"Authorization": api_key, "Content-Type": "application/json"}
 
     data = {
-        "prompt": prompts, 
+        "model": model_name,
+        "messages": prompts, 
         "temperature": temperature,
         "max_tokens": max_tokens,
         "use_raw_prompt": True,
-        "stop": ["<|im_end|>"],
+        # "stop": ["<|im_end|>"],
         **api_args
     }
     
@@ -486,6 +487,7 @@ def get_response_batch(prompts, url, max_tokens, temperature, api_key, api_args,
         if v is None:
             data.pop(k)
     
+    print(url, data)
     response = requests.post(url, headers=headers, json=data, timeout=360)
 
     if response.status_code == 400 and "Please reduce the length of your prompt." in response.text:
@@ -497,7 +499,7 @@ def get_response_batch(prompts, url, max_tokens, temperature, api_key, api_args,
             print("Retrying...")
             # sleep for longer each retry
             time.sleep(5 * (6 - retries_left))
-            return get_response_batch(prompts, url, max_tokens, temperature=temperature, api_key=api_key, api_args=api_args, retries_left=retries_left-1)
+            return get_response_batch(prompts, url, model_name,  max_tokens, temperature=temperature, api_key=api_key, api_args=api_args, retries_left=retries_left-1)
         else:
             raise Exception("Too many retries")
     else:
@@ -516,11 +518,11 @@ def get_response_batch(prompts, url, max_tokens, temperature, api_key, api_args,
         return responses# , finish_reasons, response['usage']['prompt_tokens'], response['usage']['completion_tokens']
 
 
-def db_inference_deployment(model, tokenizer, conv, temperature, max_tokens, api_key, api_args={}, api_dict=None):
+def db_inference_deployment(model, model_name, tokenizer, conv, temperature, max_tokens, api_key, api_args={}, api_dict=None):
     from transformers import AutoTokenizer
     messages = conv.to_openai_api_messages()
-    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    responses = get_response_batch(prompt, model, max_tokens, api_key=api_key, api_args=api_args, temperature = temperature)
+    # prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    responses = get_response_batch(messages, model, model_name, max_tokens, api_key=api_key, api_args=api_args, temperature = temperature)
     output = responses[0]
     return output
 
